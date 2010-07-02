@@ -1,0 +1,36 @@
+#!/usr/bin/env processtap
+# -*- python -*-
+
+import sys, os, symbol as symbol_
+
+include("stdio.h")
+include("stdlib.h")
+
+print prototype("malloc")
+print prototype("malloc").getReturnType().getSize()
+declare("void pippo(int a, int b);")
+print prototype("pippo")
+
+depth = 0
+
+@function_entry()
+def fentry(ctx):
+    global depth
+    print ctx.mem[0x1fffffff0:0x1fffffff5]
+    print "XXX"
+    # print ">>> %.4d >>>" % depth, hex(ctx.function())
+    depth += 1
+
+@function_exit()
+def fexit(ctx):
+    global depth
+    depth -= 1
+    # print "<<< %.4d <<<" % depth, hex(ctx.function())
+    
+#@memory_read()
+#def wrap_mem_read(ctx, env):
+#    print "mem_read", hex(ctx.address)
+
+#@memory_write(size = 1)
+#def wrap_mem_write(ctx, env):
+#    print "mem_write"

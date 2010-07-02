@@ -1,0 +1,13 @@
+#!/usr/bin/env processtap
+# -*- python -*-
+
+import sys, os
+
+@syscall_entry((syscall_name == "open") | (syscall_name == "close"))
+def fentry(ctx):
+    print "[S] >>>", hex(ctx.regs.RIP), ctx.syscallname()
+
+@syscall_exit((syscall_name == "open") | (syscall_name == "close"))
+def fexit(ctx):
+    print "[S] <<<", hex(ctx.regs.RIP), ctx.syscallname()
+

@@ -1,0 +1,94 @@
+#!/usr/bin/python
+
+"""
+  Copyright notice
+  ================
+  
+  Copyright (C) 2010
+      Lorenzo  Martignoni <martignlo@gmail.com>
+      Roberto  Paleari    <roberto.paleari@gmail.com>
+  
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU General Public License as published by the Free Software
+  Foundation, either version 3 of the License, or (at your option) any later
+  version.
+  
+  HyperDbg is distributed in the hope that it will be useful, but WITHOUT ANY
+  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+  A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+  
+  You should have received a copy of the GNU General Public License along with
+  this program. If not, see <http://www.gnu.org/licenses/>.
+  
+"""
+
+import os, sys, getopt, multiprocessing
+PROCESSTAP_PATH = os.path.dirname(os.path.abspath(sys.argv[0]))
+sys.path.append(os.path.join(PROCESSTAP_PATH, "cparser"))
+
+from cparser import parser as cparser
+
+backends = {"pin" : None}
+backend = "pin"
+debug = 0
+includes = ["/usr/include"]
+
+def backend_proc(b,):
+    os.environ["LD_BIND_NOW"] = "1"
+    os.execve(b[0], b, os.environ)
+
+def parser_proc():
+    cparser.xmlrpc()
+
+if __name__ == "__main__":
+    opts, args = getopt.gnu_getopt(sys.argv[1:], 'db:I:')
+    for o, a in opts:
+        if o == "-b":
+            if a in backends:
+                backend = a
+            else:
+                print >> sys.stderr, "[!] Invalid argument: '%s'" % a
+                exit(1)
+        if o == "-I":
+            if not os.path.isdir(a):
+                print >> sys.stderr, "[!] Invalid directory: '%s'" % a
+                exit(1)
+            if not a in includes:
+                includes += [a]
+        elif o == "-d":
+            debug += 1
+
+    if len(args) < 1:
+        print >> sys.stderr, "[!] Missing tap" 
+        exit(1)
+    elif len(args) < 2:
+        print >> sys.stderr, "[!] Missing command line" 
+        exit(1)
+
+    tap = args[0]
+    if not os.path.isfile(tap):
+        print >> sys.stderr, "[!] Invalid tap: '%s'" % tap
+        exit(1)
+
+    cmdline = args[1:]
+    if not os.path.isfile(cmdline[0]):
+        print >> sys.stderr, "[!] Invalid executable: '%s'" % cmdline[0]
+        exit(1)
+
+    backends["pin"] = ["pin-2.8-33586-gcc.3.4.6-ia32_intel64-linux/pin", "-t", "processtap_pin", tap, "--"] + cmdline
+
+    if debug:
+        print >> sys.stderr, "Backend:      %s" % backend
+        print >> sys.stderr, "Include dirs: %s" % " ".join(includes)
+        print >> sys.stderr, "Tap:          %s" % tap
+        print >> sys.stderr, "Cmdline:      %s" % " ".join(cmdline)
+        print >> sys.stderr, "Debug level:  %d" % debug
+
+
+    p0 = multiprocessing.Process(target=backend_proc, args=(backends[backend],))
+    p1 = multiprocessing.Process(target=parser_proc, args=())
+    p0.start()
+    p1.start()
+    p0.join()
+    print "[*] Backend terminated with exit status %d" % p0.exitcode
+    p1.terminate()

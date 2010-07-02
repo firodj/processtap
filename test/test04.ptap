@@ -1,0 +1,28 @@
+#!/usr/bin/env processtap
+# -*- python -*-
+
+import sys, os, struct
+
+def read_string(ctx, addr):
+    n = ""
+    while True:
+        c = ctx.mem[addr + len(n)]
+        if ord(c) == 0:
+            break
+        n += c
+    return n
+
+@function_entry(function_name == "strlen")
+def fentry(ctx):
+    s = symbol(ctx.event.function)
+    n = read_string(ctx, struct.unpack("i", ctx.mem[ctx.regs.RSP:ctx.regs.RSP+4:1])[0])
+    print "[F] >>", hex(ctx.event.function), ",".join(s), "'%s'" % n
+
+@function_exit(function_name == "strlen")
+def fexit(ctx):
+    s = symbol(ctx.event.function)
+
+    v = 1
+
+    print "[F] <<", hex(ctx.event.function), ",".join(s), "replacing %d with %d" % (ctx.regs.RAX, v)
+    ctx.regs.RAX = v

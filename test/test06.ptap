@@ -1,0 +1,16 @@
+#!/usr/bin/env processtap
+# -*- python -*-
+
+import sys, os, random
+
+random.seed()
+
+@function_exit(function_name == "opendir")
+def fexit(ctx):
+    s = symbol(ctx.event.function)
+
+    fail = random.choice([True, False])
+
+    print "[F] <<", hex(ctx.event.function), ",".join(s), "fail?", fail
+    if fail:
+        ctx.regs.RAX = 0

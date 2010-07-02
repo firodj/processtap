@@ -1,0 +1,22 @@
+#!/usr/bin/env processtap
+# -*- python -*-
+
+import sys, os
+
+include("string.h")
+include("stdlib.h")
+
+@function_exit()
+def fentry(ctx):
+    if not (ctx.functionname() and ctx.prototype()):
+        return 
+
+    print "[F] <<", ctx.functionname(), 
+    for i in range(len(ctx.args)):
+        a = ctx.args[i]
+        if isinstance(a, str):
+            a = repr(a)
+        print a,
+    print "-->", hex(ctx.regs.RAX)
+
+

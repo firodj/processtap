@@ -1,0 +1,20 @@
+#!/home/martignlo/DATA/Ricerca/ProcessTap/processtap
+# -*-python-*-
+
+import sys
+
+@function_entry()
+def wrap_function_entry(env):
+    print "[C] wrap_function_entry()", env.event
+
+@function_exit()
+def wrap_function_exit(env):
+    print "[C] wrap_function_exit()", env.event
+
+# @syscall_entry()
+# def wrap_syscall_entry(env):
+#     print "[C] wrap_syscall_entry()", env.event
+
+# @syscall_exit()
+# def wrap_syscall_exit(env):
+#     print "[C] wrap_syscall_exit()", env.event
