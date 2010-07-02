@@ -28,9 +28,9 @@ MEMORY_READ    = 16
 MEMORY_WRITE   = 32
 MEMORY_EXECUTE = 64
 
-event2str = { FUNCTION_ENTRY : "function.entry", FUNCTION_EXIT : "function.exit", 
-              SYSCALL_ENTRY : "syscall.entry", SYSCALL_EXIT : "syscall.exit",
-              MEMORY_READ : "memory.read", MEMORY_WRITE : "memory.write", MEMORY_EXECUTE : "memory.execute"}
+event2str = { FUNCTION_ENTRY : "function_entry", FUNCTION_EXIT : "function_exit", 
+              SYSCALL_ENTRY : "syscall_entry", SYSCALL_EXIT : "syscall_exit",
+              MEMORY_READ : "memory_read", MEMORY_WRITE : "memory_write", MEMORY_EXECUTE : "memory_execute"}
 
 class event:
     def __init__(self, etype, pid, tid, inst, stack):

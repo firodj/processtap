@@ -50,7 +50,6 @@ def parse_header(h):
     for f, p in ff.iteritems():
         __prototypes[f] = p
 
-
 def set_prototype(p):
     tmp = tempfile.NamedTemporaryFile()
     tmp.write(p)

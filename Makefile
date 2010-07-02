@@ -1,16 +1,19 @@
 CFLAGS = -Wall `python-config --includes`
 LDFLAGS = `python-config --libs`
 
-all: processtap_pin.so
+all: processtap_pin.so linux_syscalls.h
 
-## processtap api
+linux_syscalls.h: gen_prototypes.py
+	python gen_prototypes.py 2>/dev/null >$@
+
+## ProcessTap api
 processtap.o: processtap.c processtap.h
 	$(CC) $(CFLAGS) -fPIC -c -o processtap.o processtap.c
 
 bloomfilter.o: bloomfilter.c bloomfilter.h
 	$(CC) $(CFLAGS) -fPIC -c -o bloomfilter.o bloomfilter.c
 
-## pin
+## PIN
 TARGET_COMPILER = gnu
 INCL = ./include
 PIN_KIT = ./pin-2.8-33586-gcc.3.4.6-ia32_intel64-linux

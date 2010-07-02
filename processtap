@@ -31,7 +31,7 @@ from cparser import parser as cparser
 backends = {"pin" : None}
 backend = "pin"
 debug = 0
-includes = ["/usr/include"]
+includes = ["/usr/include", PROCESSTAP_PATH]
 
 def backend_proc(b,):
     os.environ["LD_BIND_NOW"] = "1"
