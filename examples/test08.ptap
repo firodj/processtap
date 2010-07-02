@@ -1,0 +1,16 @@
+#!/usr/bin/env processtap
+# -*- python -*-
+
+import sys, os
+
+files = {}
+
+declare("int open(const char *pathname, int flags);")
+declare("int creat(const char *pathname, int flags);")
+
+@syscall_exit(syscall_name == "open")
+def open_exit(ctx):
+    if ctx.regs.RAX:
+        files[ctx.regs.RAX] = ctx.args[0]
+        print ctx.syscallname(), ctx.regs.RAX, files[ctx.regs.RAX]
+

@@ -3,7 +3,7 @@
 
 import sys, os
 
-@syscall_entry((syscall_name == "open") | (syscall_name == "close"))
+@syscall_entry(syscall_name in ["open", "close"])
 def fentry(ctx):
     print "[S] >>>", hex(ctx.regs.RIP), ctx.syscallname()
 

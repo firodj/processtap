@@ -116,19 +116,28 @@ class args:
         self.env = env
 
     def __getitem__(self, item):
-        if not isinstance(self.env.event, (event.function_exit, event.function_entry, event.syscall_entry, event.syscall_exit)):
+        if isinstance(self.env.event, (event.function_exit, event.function_entry)):
+            f = self.env.functionname()
+        elif isinstance(self.env.event, (event.syscall_exit, event.syscall_entry)):
+            f = self.env.syscallname()
+        else:
             raise Exception()
 
+        p = prototype.get_prototype(f)
         stackptr = self.env.regs.STACKPTR
         if isinstance(self.env.event, event.function_exit):
             stackptr += self.env.PTR_SIZE
-        return prototype.peek_argument(self.env, self.env.functionname(), item, stackptr)
+        return prototype.peek_argument(self.env, f, item, stackptr)
+
 
     def __len__(self):
-        if not isinstance(self.env.event, (event.function_exit, event.function_entry, event.syscall_entry, event.syscall_exit)):
+        if isinstance(self.env.event, (event.function_exit, event.function_entry)):
+            f = self.env.functionname()
+        elif isinstance(self.env.event, (event.syscall_exit, event.syscall_entry)):
+            f = self.env.syscallname()
+        else:
             raise Exception()
-        
-        f = self.env.functionname()
+
         p = prototype.get_prototype(f)
         if p:
             return len(p.getArguments())
