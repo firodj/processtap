@@ -24,7 +24,7 @@ import event
 import singleton
 import symbol
 
-COMPARISON_OPERANDS = ["==", "!=", ">", "<", ">=", "<=", "IN"]
+COMPARISON_OPERANDS = ["==", "!=", ">", "<", ">=", "<="]
 LOGICAL_OPERANDS    = ["&", "|"]
 
 class ProbeExpression:
@@ -146,7 +146,26 @@ class ProbeVariable(ProbeExpression):
         else:
             v = op
         return v
-    
+
+    def __rshift__(self, other):
+        assert isinstance(other, (list, set, tuple))
+
+        ll = []
+        for o in other:
+            o = self.parse_rhs(o)
+            if o is None:
+                continue
+            ll.append(ProbeComparisonExpression(self, ProbeComparisonOperand("=="), o))
+
+        if len(ll) == 0:
+            return ProbeConstant(False)
+
+
+        r = ll[0]
+        for o in ll[1:]:
+            r = ProbeLogicalExpression(r, ProbeLogicalOperand("|"), o)
+        return r
+
     def __eq__(self, other):
         other = self.parse_rhs(other)
         return ProbeComparisonExpression(self, ProbeComparisonOperand("=="), other)
@@ -204,7 +223,7 @@ class ProbeSymbol(ProbeVariable):
 
 class probe_property(singleton.singleton, ProbeVariable):
     def __init__(self):
-        self.name = self.__class__.__name__.replace("_", ".")
+        self.name = self.__class__.__name__
         ProbeVariable.__init__(self, self.name)
 
     def __str__(self):

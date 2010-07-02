@@ -127,10 +127,13 @@ def filters(t):
     return f
 
 if __name__ == "__main__":
-    from probeexp import process, thread, function, memory, syscall, ProbeExpression, ProbeConstant
+    import symbol
+    from probeexp import function_name, syscall_num, syscall_name, memory_size, process_id
 
-    @function_entry(function.name == "xxx")
-    @function_entry(function.name == "fopen")
+    symbol.init("")
+
+    @function_entry(function_name == "xxx")
+    @function_entry(function_name == "fopen")
     def wrap_function_entry(env):
         print "Calling wrap_function_entry()"
 
@@ -138,7 +141,7 @@ if __name__ == "__main__":
     def wrap_function_exit(env):
         print "Calling wrap_function_exit()"
 
-    @syscall_entry(syscall.num == 18)
+    @syscall_entry(syscall_name >> ["open", "close"])
     def wrap_syscall_entry(env):
         print "Calling wrap_syscall_entry()"
 
@@ -150,22 +153,20 @@ if __name__ == "__main__":
     def wrap_mem_read(env):
         print "Calling wrap_mem_read()"
 
-    @memory_write(memory.size == 1)
+    @memory_write(memory_size == 1)
     def wrap_mem_write(env):
         print "Calling wrap_mem_write()"
 
-    @function_exit((process.id == 20) & (function.name == "malloc"))
+    @function_exit((process_id == 20) & (function_name == "malloc"))
     def wrap_function_exit2(env):
         print "Calling wrap_function_exit2()"
 
     show_probes()
 
-    e = event.function_entry(pid = 20, tid = 15, module = None, inst = None, stack = None, callee = None)    
+    e = event.function_entry(pid = 20, tid = 15, inst = 0xbadbabe, stack = 0xdeadbeef, funcaddr = 0xcafebabe)    
     print "[*] Dispatching event %s" % e
     run_probes(e, None)
-    print
 
-    e = event.syscall_entry(pid = 20, tid = 15, module = None, inst = None, stack = None, sysno = 31337)    
+    e = event.syscall_entry(pid = 20, tid = 15, inst = 0xbadbabe, stack = 0xdeadbeef, sysno = 18)    
     print "[*] Dispatching event %s" % e
     run_probes(e, None)
-    print
