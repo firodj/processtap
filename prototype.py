@@ -122,7 +122,7 @@ def __peek_argument(ctx, arg, addr):
         return __peek(ctx, fmt, addr, arg.getSize())
 
     elif arg.isChar():
-        fmt = "b"
+        fmt = "c"
         if not arg.isSigned():
             fmt = "B"
         return __peek(ctx, fmt, addr, 1)
@@ -133,13 +133,13 @@ def __peek_argument(ctx, arg, addr):
             addr_ = __peek(ctx, "I", addr, arg.getSize())
             if addr_:
                 if arg_.isVoid() or arg.isFuncPtr():
-                    return __peek(ctx, "I", addr_, arg.getSize())
+                    return addr_
                 elif arg.isString():
                     r = ""
-                    s = __peek(ctx, "s", addr_, 1)
-                    while ord(s) != 0:
+                    s = __peek(ctx, "c", addr_, 1)
+                    while s and ord(s) != 0:
                         r += s
-                        s = __peek(ctx, "s", addr_ + len(r), 1)
+                        s = __peek(ctx, "c", addr_ + len(r), 1)
                     return r
                 else:
                     return __peek_argument(ctx, arg_, addr_)
@@ -195,22 +195,21 @@ def __poke_argument(ctx, arg, addr, value):
         return __peek(fm, fmt, addr, 1)
 
     elif arg.isPtr():
-        arg_ = arg.getMember()
-        if addr:
-            addr_ = ctx.mem[addr:addr+arg.getSize()]
-            if addr_:
-                if arg_.isVoid() or arg.isFuncPtr():
-                    # return the address
-                    return __peek(ctx, "P", addr_, arg.getSize())
-                elif arg.isString():
-                    r = ""
-                    s = __peek(ctx, "s", addr_, 1)
-                    while s:
-                        r += s
-                        s = __peek(ctx, "s", addr_ + len(r), 1)
-                    return s
-                else:
-                    return __peek_argument(ctx, arg_, addr_)
+        addr_ = ctx.mem[addr:addr+arg.getSize()]
+        if addr_:
+            if arg.getMember().isVoidPtr() or arg.isFuncPtr():
+                # return the address
+                return __peek(ctx, "I", addr_, arg.getSize())
+            elif arg.isString():
+                r = ""
+                s = __peek(ctx, "s", addr_, 1)
+                while s:
+                    r += s
+                    s = __peek(ctx, "s", addr_ + len(r), 1)
+                return s
+            else:
+                return __peek_argument(ctx, arg.getMember(), addr_)
+        return None
 
     elif arg.isFloat():
         return 0
