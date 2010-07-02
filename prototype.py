@@ -86,9 +86,17 @@ def argument(func, arg):
 
 def __peek(ctx, fmt, base, size):
     assert len(fmt) == 1
-    if base == None:
-        pass
+    if base == None or size == 0:
+        return None
     else:
+        if fmt == "P":
+            # P can be used only in native mode (use I/L instead according to pointer size)
+            if ctx.PTR_SIZE == 4:
+                fmt = "I"
+            elif ctx.PTR_SIZE == 8:
+                fmt = "L"
+            else:
+                assert 0
         if ctx.isLittleEndian():
             fmt = "<" + fmt
         else:
@@ -98,6 +106,14 @@ def __peek(ctx, fmt, base, size):
 
 def __poke(ctx, fmt, base, size, value):
     assert len(fmt) == 1
+    if fmt == "P":
+        # P can be used only in native mode (use I/L instead according to pointer size)
+        if ctx.PTR_SIZE == 4:
+            fmt = "I"
+        elif ctx.PTR_SIZE == 8:
+            fmt = "L"
+        else:
+            assert 0
     if ctx.isLittleEndian():
         fmt = "<" + fmt
     else:
@@ -130,7 +146,7 @@ def __peek_argument(ctx, arg, addr):
     elif arg.isPtr():
         arg_ = arg.getMember()
         if addr:
-            addr_ = __peek(ctx, "I", addr, arg.getSize())
+            addr_ = __peek(ctx, "P", addr, arg.getSize())
             if addr_:
                 if arg_.isVoid() or arg.isFuncPtr():
                     return addr_
