@@ -47,7 +47,7 @@ if __name__ == "__main__":
             if a in backends:
                 backend = a
             else:
-                print >> sys.stderr, "[!] Invalid argument: '%s'" % a
+                print >> sys.stderr, "[!] Invalid backend: '%s'" % a
                 exit(1)
         if o == "-I":
             if not os.path.isdir(a):
