@@ -249,7 +249,7 @@ class env_x86(env):
         env.__init__(self, "i686", {
                 "EAX" : env_x86.EAX,
                 "EBX" : env_x86.EBX,
-                "EDX" : env_x86.ECX,
+                "ECX" : env_x86.ECX,
                 "EDX" : env_x86.EDX,
                 "ESI" : env_x86.ESI,
                 "EDI" : env_x86.EDI,
@@ -259,7 +259,7 @@ class env_x86(env):
                 "EIP" : env_x86.EIP,
                 "RAX" : env_x86.EAX,
                 "RBX" : env_x86.EBX,
-                "RDX" : env_x86.ECX,
+                "RCX" : env_x86.ECX,
                 "RDX" : env_x86.EDX,
                 "RSI" : env_x86.ESI,
                 "RDI" : env_x86.EDI,
