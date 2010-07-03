@@ -1,16 +1,12 @@
 #!/usr/bin/env processtap
 # -*- python -*-
 
-import sys, os
+import sys, os, struct
 
-files = {}
+include('string.h')
 
-# declare("int open(const char *pathname, int flags);")
-# declare("int creat(const char *pathname, int flags);")
-include("linux_syscalls.h")
-
-@syscall_entry(syscall_name == "open")
+@function_entry(function_name == "strlen")
 def open_entry(ctx):
-    files[ctx.regs.RAX] = ctx.args[0]
-    print ctx.syscallname(), ctx.regs.RAX, files[ctx.regs.RAX]
+    print ">>> %s('%s')" % (ctx.functionname(), ctx.args[0])
+
 
