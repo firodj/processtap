@@ -107,6 +107,9 @@ def init(exe, tap, m):
             "include"   : prototype.parse_header, 
             "prototype" : prototype.get_prototype, 
             "declare"   : prototype.set_prototype, 
+
+            # exceptions
+            "MissingPrototype": prototype.MissingPrototype
             })
 
     probe.show_probes()

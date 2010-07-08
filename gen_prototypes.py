@@ -1,11 +1,13 @@
 import os, sys, re, platform, subprocess
 
-BLACKLIST = ["eventfd2", "fstatfs64", "rt_sigqueueinfo", "signalfd4", "statfs64", "olduname", "stat64"]
+BLACKLIST = ["eventfd2", "fstatfs64", "rt_sigqueueinfo", "signalfd4", "statfs64", "olduname", "stat64", "readlinkat"]
 
 # For these syscalls, we don't have the headers on a standard installation of Linux
 BLACKLIST.extend(["capget", "capset", "add_key", "request_key"])
 
 HEADER = """
+#define __builtin_va_arg_pack_len() 0
+
 #include <sys/inotify.h>
 #include <sys/ptrace.h>
 #include <sys/types.h>
@@ -17,6 +19,8 @@ HEADER = """
 #include <sched.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <sys/utsname.h>
+
 
 typedef uint64_t u64;
  

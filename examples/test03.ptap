@@ -14,11 +14,11 @@ raw_input()
 def fentry(ctx):
     # FIXME: Must always use the extended slice syntax, otherwise 'start' and
     # 'stop' attributes of the slice object are truncated to int
-    print ">>>", ctx.module(), ctx.syscall(), hex(ctx.regs.RSP), hex(ctx.regs.RIP), repr(ctx.mem[ctx.regs.RIP:ctx.regs.RIP+10:1])
+    print ">>>", ctx.module, ctx.syscall, hex(ctx.regs.RSP), hex(ctx.regs.RIP), repr(ctx.mem[ctx.regs.RIP:ctx.regs.RIP+10:1])
 
 @syscall_exit()
 def fexit(ctx):
-    print "<<<", ctx.module(), ctx.syscall()
+    print "<<<", ctx.module, ctx.syscall
     
 #@memory_read()
 #def wrap_mem_read(ctx, env):

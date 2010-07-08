@@ -4,9 +4,36 @@
 import sys, os, struct
 
 include('string.h')
+include('linux_syscalls.h')
 
 @function_entry(function_name == "strlen")
 def open_entry(ctx):
-    print ">>> %s('%s')" % (ctx.functionname(), ctx.args[0])
+    print ">>> %s('%s')" % (ctx.function_name, repr(ctx.args[0]))
+
+syscalls = ["open", "read", "write", "connect"]
+
+@syscall_entry()
+def sysopen_entry(ctx):
+    if ctx.syscall_name not in syscalls:
+        return
+    
+    print ">>> %s -->" % (ctx.syscall_name),
+    try:
+        for i in range(len(ctx.args)):
+            print ctx.args[i],
+        print
+    except MissingPrototype:
+        print "missing prototype"
+
+@syscall_exit(syscall_name == "open")
+def sysopen_exit(ctx):
+    if ctx.syscall_name not in syscalls:
+        return
+
+    print "<<< %s  -->" % (ctx.syscall_name),
+    try:
+        print ctx.retval
+    except MissingPrototype:
+        print "missing prototype"
 
 

@@ -5,9 +5,9 @@ import sys, os
 
 @syscall_entry(syscall_num >> [5, 6])
 def fentry(ctx):
-    print "[S] >>>", hex(ctx.regs.RIP), ctx.syscallname()
+    print "[S] >>>", hex(ctx.regs.RIP), ctx.syscall_name
 
 @syscall_exit(syscall_name >> ["open", "close"])
 def fexit(ctx):
-    print "[S] <<<", hex(ctx.regs.RIP), ctx.syscallname()
+    print "[S] <<<", hex(ctx.regs.RIP), ctx.syscall_name
 

@@ -39,6 +39,7 @@ class initargs:
         self.wr = None
         self.rm = None
         self.wm = None
+        self.abibuilder = None
         self.envbuilder = None
 __initargs = initargs()
 
@@ -117,24 +118,20 @@ class args:
 
     def __getitem__(self, item):
         if isinstance(self.env.event, (event.function_exit, event.function_entry)):
-            f = self.env.functionname()
+            f = self.env.function_name
         elif isinstance(self.env.event, (event.syscall_exit, event.syscall_entry)):
-            f = self.env.syscallname()
+            f = self.env.syscall_name
         else:
             raise Exception()
 
-        p = prototype.get_prototype(f)
-        stackptr = self.env.regs.STACKPTR
-        if isinstance(self.env.event, event.function_exit):
-            stackptr += self.env.PTR_SIZE
-        return prototype.peek_argument(self.env, f, item, stackptr)
+        return prototype.peek_argument(self.env, f, item)
 
 
     def __len__(self):
         if isinstance(self.env.event, (event.function_exit, event.function_entry)):
-            f = self.env.functionname()
+            f = self.env.function_name
         elif isinstance(self.env.event, (event.syscall_exit, event.syscall_entry)):
-            f = self.env.syscallname()
+            f = self.env.syscall_name
         else:
             raise Exception()
 
@@ -148,9 +145,22 @@ class args:
         if not isinstance(self.event, (event.FUNCTION_ENTRY, event.FUNCTION_EXIT, event.SYSCALL_ENTRY, event.SYSCALL_EXIT)):
             raise Exception()
 
+    def __getattr__(self, item):
+        if item == "retval":
+            if isinstance(self.env.event, event.function_exit):
+                f = self.env.function_name
+            elif isinstance(self.env.event, event.syscall_exit):
+                f = self.env.syscall_name
+            else:
+                raise Exception()
+
+            return prototype.peek_argument(self.env, f, -1)
+
+        raise Exception()
+
 
 class env:
-    def __init__(self, cpu, r, rr, wr, rm, wm, endianess = LITTLE_ENDIAN):
+    def __init__(self, cpu, r, rr, wr, rm, wm, endianess, abi):
         self.cpu = cpu
         self.regs = regs(self, r, rr, wr)
         self.mem = mem(self, rm, wm)
@@ -158,6 +168,23 @@ class env:
         self.args = args(self)
         self.event = None
         self.endianess = endianess
+        self.abi = abi(self)
+
+        self.__attributes = {
+            "exe" : (None, self.__exe),
+            "module" : (None, self.__module),
+            "pid" : (None, self.__pid),
+            "tid" : (None, self.__tid),
+            "function": (lambda ev: isinstance(ev, (event.function_entry, event.function_exit)), self.__function),
+            "function_name": (lambda ev: isinstance(ev, (event.function_entry, event.function_exit)), self.__function_name),
+            "caller": (lambda ev: isinstance(ev, (event.function_entry, event.function_exit)), self.__caller),
+            "callee": (lambda ev: isinstance(ev, (event.function_entry, event.function_exit)), self.__callee),
+            "syscall": (lambda ev: isinstance(ev, (event.syscall_entry, event.syscall_exit)), self.__syscall),
+            "syscall_name": (lambda ev: isinstance(ev, (event.syscall_entry, event.syscall_exit)), self.__syscall_name),
+            "prototype": (lambda ev: isinstance(ev, (event.function_entry, event.function_exit, event.syscall_entry, event.syscall_exit)), 
+                          self.__prototype),
+            "retval": (lambda ev: isinstance(ev, (event.function_exit, event.syscall_exit)), self.__retval),
+            }
 
     def isLittleEndian(self):
         return self.endianess == LITTLE_ENDIAN
@@ -165,68 +192,64 @@ class env:
     def isBigEndian(self):
         return self.endianess == BIG_ENDIAN
 
-    def exe(self):
+    def __attribute_getter(self, name):
+        if name in self.__attributes:
+            cond, getter = self.__attributes[name]
+            if cond is None or cond(self.event):
+                return getter()
+        raise AttributeError("Invalid attribue '%s' for event '%s'" % (name, event.event2str[self.event.type]))
+
+    def __getattr__(self, name):
+        return self.__attribute_getter(name)
+
+    def __exe(self):
         return "randomprocname"
     
-    def module(self):
+    def __module(self):
         m = symbol.get_module(self.event.instruction)
         if m:
             return m
         else:
             return "unknown"
 
-    def pid(self):
+    def __pid(self):
         return self.event.pid
 
-    def tid(self):
+    def __tid(self):
         return self.event.tid
 
-    def function(self):
-        if isinstance(self.event, (event.function_exit, event.function_entry)):
-            return self.event.function
-        raise AttributeError("Nonsense")
+    def __function(self):
+        return self.event.function
 
-    def syscall(self):
-        if isinstance(self.event, (event.syscall_exit, event.syscall_entry)):
-            return self.event.sysno
-        raise AttributeError("Nonsense")
+    def __syscall(self):
+        return self.event.sysno
 
-    def callee(self):
-        if isinstance(self.event, (event.function_exit, event.function_entry)):
-            return self.event.function
+    def __callee(self):
+        return self.event.function
 
-    def functionname(self):
-        if isinstance(self.event, (event.function_exit, event.function_entry)):
-            s = symbol.get_symbol(self.event.function)
-            if s: return s[0]
-            else: return None
+    def __function_name(self):
+        s = symbol.get_symbol(self.event.function)
+        if s: return s[0]
+        else: return None
 
-        raise AttributeError("Nonsense")
-
-    def prototype(self):
+    def __prototype(self):
         fname = self.functionname()
         if fname:
             return prototype.get_prototype(fname)
         else:
             return None
 
-    def instruction(self):
+    def __instruction(self):
         return self.event.instruction
 
-    def syscallname(self):
-        if isinstance(self.event, (event.syscall_exit, event.syscall_entry)):
-            return symbol.get_syscall(self.event.sysno)
-        raise AttributeError("Nonsense")
+    def __syscall_name(self):
+        return symbol.get_syscall(self.event.sysno)
 
-    def caller(self):
-        if isinstance(self.event, (event.function_exit, event.function_entry)):
-            return self.event.instruction
-        raise AttributeError("Nonsense")
+    def __caller(self):
+        return self.event.instruction
 
-    def retval(self):
-        if isinstance(self.event, (event.function_exit, event.syscall_exit)):
-            return self.regs.RAX
-        raise AttributeError("Nonsense")
+    def __retval(self):
+        return self.args.retval
 
 
 class env_x86(env):
@@ -245,7 +268,7 @@ class env_x86(env):
 
     PTR_SIZE = 4
 
-    def __init__(self, rr, wr, rm, wm):
+    def __init__(self, rr, wr, rm, wm, abi):
         env.__init__(self, "i686", {
                 "EAX" : env_x86.EAX,
                 "EBX" : env_x86.EBX,
@@ -268,7 +291,7 @@ class env_x86(env):
                 "RFLAGS" : env_x86.EFLAGS,
                 "RIP" : env_x86.EIP,
                 "STACKPTR" : env_x86.ESP,
-                "INSTPTR" : env_x86.EIP}, rr, wr, rm, wm)
+                "INSTPTR" : env_x86.EIP}, rr, wr, rm, wm, LITTLE_ENDIAN, abi)
 
 
 class env_x86_64(env):
@@ -295,11 +318,11 @@ class env_x86_64(env):
 
     PTR_SIZE = 8
 
-    def __init__(self, rr, wr, rm, wm):
+    def __init__(self, rr, wr, rm, wm, abi):
         env.__init__(self, "x86_64", {
                 "RAX" : env_x86_64.RAX,
                 "RBX" : env_x86_64.RBX,
-                "RDX" : env_x86_64.RCX,
+                "RCX" : env_x86_64.RCX,
                 "RDX" : env_x86_64.RDX,
                 "RSI" : env_x86_64.RSI,
                 "RDI" : env_x86_64.RDI,
@@ -316,7 +339,68 @@ class env_x86_64(env):
                 "R14" : env_x86_64.R14,
                 "R15" : env_x86_64.R15,
                 "STACKPTR" : env_x86_64.RSP,
-                "INSTPTR" : env_x86_64.RIP}, rr, wr, rm, wm)
+                "INSTPTR" : env_x86_64.RIP}, rr, wr, rm, wm, LITTLE_ENDIAN, abi)
+    
+# Very simplified ABIs
+class abi:
+    def __init__(self, env):
+        self.env = env
+
+    def argument(i):
+        raise Exception("Abastract")
+
+    def returnval(i):
+        raise Exception("Abastract")
+
+
+class abi_x86_linux(abi):
+    def __init__(self, env):
+        abi.__init__(self, env)
+
+    def argument(self, i):
+        if isinstance(self.env.event, (event.function_entry, event.function_exit)):
+            stackptr = self.env.regs.STACKPTR
+            if isinstance(self.env.event, event.function_exit):
+                stackptr += self.env.PTR_SIZE
+            return self.env.mem[stackptr + i*self.env.PTR_SIZE, stackptr + (i+1)*self.env.PTR_SIZE]
+        elif isinstance(self.env.event, (event.syscall_entry, event.syscall_exit)):
+            __regs = ["EBX", "ECX", "EDX", "ESI", "EDI"]
+            assert i < len(__regs)
+            return struct.pack("=I", getattr(self.env.regs, __regs[i]))
+        else:
+            assert 0
+
+    def returnval(self):
+        return struct.pack("=Q", self.env.regs.REX)
+    
+
+class abi_x86_64_linux(abi):
+    def __init__(self, env):
+        abi.__init__(self, env)
+
+    def argument(self, i):
+        if isinstance(self.env.event, (event.function_entry, event.function_exit)):
+            stackptr = self.env.regs.STACKPTR
+            if isinstance(self.env.event, event.function_exit):
+                stackptr += self.env.PTR_SIZE
+
+            __regs = ["RDI", "RSI", "RDX", "RCX", "R8", "R9"]
+            if i < len(__regs):
+                return struct.pack("=Q", getattr(self.env.regs, __regs[i]))
+            else:
+                i = i - len(__regs)
+                return self.env.mem[stackptr + i*ctx.PTR_SIZE, stackptr + (i+1)*ctx.PTR_SIZE]
+
+        elif isinstance(self.env.event, (event.syscall_entry, event.syscall_exit)):
+            __regs = ["RDI", "RSI", "RDX", "RCX", "R8", "R9"]
+            assert i < len(__regs)
+            return struct.pack("=Q", getattr(self.env.regs, __regs[i]))
+
+        else:
+            assert 0
+
+    def returnval(self):
+        return struct.pack("=Q", self.env.regs.RAX)
 
  
 def init(rr, wr, rm, wm):
@@ -328,6 +412,7 @@ def init(rr, wr, rm, wm):
     __initargs.wm = wm
 
     mac = platform.machine()
+    sys = platform.system()
     if mac == 'i686':
         __initargs.envbuilder = env_x86
     elif mac == 'x86_64':
@@ -335,9 +420,18 @@ def init(rr, wr, rm, wm):
     else:
         raise "[!] Unsupported architecture '%s'" % mac
 
+    if mac == 'i686' and sys == 'Linux':
+        __initargs.abibuilder = abi_x86_linux
+    elif mac == 'x86_64' and sys == 'Linux':
+        __initargs.abibuilder = abi_x86_64_linux
+    else:
+        raise "[!] Unsupported ABI '%s on %s'" % (sys, mac)
+
+
 def build():
     global __initargs
     return __initargs.envbuilder(__initargs.rr, __initargs.wr, 
-                                 __initargs.rm, __initargs.wm)
+                                 __initargs.rm, __initargs.wm,
+                                 __initargs.abibuilder)
 
 
